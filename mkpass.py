@@ -4,6 +4,7 @@
 Uses Python's `secrets` module for cryptographically strong randomness.
 """
 import argparse
+import math
 import secrets
 import string
 import sys
@@ -33,6 +34,13 @@ def generate(length, charset):
     return "".join(secrets.choice(charset) for _ in range(length))
 
 
+def entropy_bits(length, pool_size):
+    """Estimate password entropy in bits for a uniform random draw."""
+    if pool_size <= 1:
+        return 0.0
+    return length * math.log2(pool_size)
+
+
 def parse_args(argv):
     p = argparse.ArgumentParser(
         prog="mkpass", description="Generate strong random passwords."
@@ -49,6 +57,8 @@ def parse_args(argv):
                    help="exclude digits")
     p.add_argument("-s", "--symbols", action="store_true",
                    help="include punctuation symbols")
+    p.add_argument("-e", "--entropy", action="store_true",
+                   help="print estimated entropy to stderr")
     return p.parse_args(argv)
 
 
@@ -64,6 +74,10 @@ def main(argv=None):
         print("error: character set is empty; enable at least one class",
               file=sys.stderr)
         return 2
+    if args.entropy:
+        bits = entropy_bits(args.length, len(charset))
+        print(f"# entropy: {bits:.1f} bits "
+              f"(length {args.length}, pool {len(charset)})", file=sys.stderr)
     for _ in range(max(1, args.count)):
         print(generate(args.length, charset))
     return 0
