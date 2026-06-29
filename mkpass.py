@@ -13,6 +13,7 @@ LOWER = string.ascii_lowercase
 UPPER = string.ascii_uppercase
 DIGITS = string.digits
 SYMBOLS = "!@#$%^&*()-_=+[]{};:,.?"
+AMBIGUOUS = "O0oIl1"  # lookalike characters removed by --readable
 
 
 def build_charset(use_lower, use_upper, use_digits, use_symbols):
@@ -27,6 +28,11 @@ def build_charset(use_lower, use_upper, use_digits, use_symbols):
     if use_symbols:
         classes.append(SYMBOLS)
     return "".join(classes)
+
+
+def strip_ambiguous(charset):
+    """Remove lookalike characters that are easy to misread."""
+    return "".join(c for c in charset if c not in AMBIGUOUS)
 
 
 def generate(length, charset):
@@ -57,6 +63,8 @@ def parse_args(argv):
                    help="exclude digits")
     p.add_argument("-s", "--symbols", action="store_true",
                    help="include punctuation symbols")
+    p.add_argument("-r", "--readable", action="store_true",
+                   help="drop lookalike characters (O/0, I/l/1)")
     p.add_argument("-e", "--entropy", action="store_true",
                    help="print estimated entropy to stderr")
     return p.parse_args(argv)
@@ -70,6 +78,8 @@ def main(argv=None):
     charset = build_charset(
         not args.no_lower, not args.no_upper, not args.no_digits, args.symbols
     )
+    if args.readable:
+        charset = strip_ambiguous(charset)
     if not charset:
         print("error: character set is empty; enable at least one class",
               file=sys.stderr)
